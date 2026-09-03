@@ -6,13 +6,13 @@ import com.example.digital_wallet.common.exception.ErrorCode;
 import com.example.digital_wallet.transaction.dto.request.TopUpRequest;
 import com.example.digital_wallet.transaction.dto.request.TransferRequest;
 import com.example.digital_wallet.transaction.dto.response.TopUpResponse;
+import com.example.digital_wallet.transaction.dto.response.TransactionHistoryResponse;
 import com.example.digital_wallet.transaction.dto.response.TransferResponse;
-import com.example.digital_wallet.transaction.entity.LedgerEntry;
-import com.example.digital_wallet.transaction.entity.LedgerType;
-import com.example.digital_wallet.transaction.entity.TopUpStatus;
-import com.example.digital_wallet.transaction.entity.TopUpTransaction;
+import com.example.digital_wallet.transaction.entity.*;
+import com.example.digital_wallet.transaction.mapper.LedgerMapper;
 import com.example.digital_wallet.transaction.repository.LedgerEntryRepository;
 import com.example.digital_wallet.transaction.repository.TopUpRepository;
+import com.example.digital_wallet.transaction.repository.TransferRepository;
 import com.example.digital_wallet.user.entity.User;
 import com.example.digital_wallet.user.repository.UserRepository;
 import com.example.digital_wallet.wallet.entity.Wallet;
@@ -21,12 +21,19 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +44,8 @@ public class TopUpService {
     WalletRepository walletRepository;
     LedgerEntryRepository ledgerRepository;
     TopUpRepository topUpRepository;
+    TransferRepository transferRepository;
+    LedgerMapper ledgerMapper;
 
     @Transactional
     public TopUpResponse topUp(TopUpRequest request) throws InterruptedException {
@@ -156,12 +165,25 @@ public class TopUpService {
 
         walletRepository.save(receiverWallet);
 
+
+        TransferTransaction transferTransaction = TransferTransaction.builder()
+                .senderWallet(senderWallet)
+                .receiverWallet(receiverWallet)
+                .amount(amount)
+                .status(TransferStatus.SUCCESS)
+                .description(request.getDescription())
+                .build();
+
+        transferRepository.save(transferTransaction);
+
+
         LedgerEntry senderLedger = LedgerEntry.builder()
                 .wallet(senderWallet)
                 .type(LedgerType.TRANSFER_OUT)
                 .amount(amount.negate())
                 .balanceBefore(senderOldBalance)
                 .balanceAfter(senderNewBalance)
+                .referenceId(transferTransaction.getId())
                 .build();
 
         LedgerEntry receiverLedger = LedgerEntry.builder()
@@ -170,7 +192,10 @@ public class TopUpService {
                 .amount(amount)
                 .balanceBefore(receiverOldBalance)
                 .balanceAfter(receiverNewBalance)
+                .referenceId(transferTransaction.getId())
                 .build();
+
+
 
         ledgerRepository.save(senderLedger);
         ledgerRepository.save(receiverLedger);
@@ -183,6 +208,55 @@ public class TopUpService {
                 .createdAt(OffsetDateTime.now())
                 .build();
     }
+
+
+
+    public Page<TransactionHistoryResponse> accessTransactionHistory(int page,
+                                                                     int size,
+                                                                     String orderBy,
+                                                                     LedgerType type,
+                                                                     OffsetDateTime from,
+                                                                     OffsetDateTime to
+
+    )
+    {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() ->
+                        new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        Wallet wallet = walletRepository
+                .findByUserId(user.getId())
+                .orElseThrow(() ->
+                        new AppException(ErrorCode.WALLET_NOT_EXISTED));
+
+        Pageable pageable = PageRequest.of(
+                page,size,
+                Sort.by(
+                        Sort.Order.desc(orderBy)
+                )
+        );
+
+
+
+        Specification<LedgerEntry> spec =
+                Specification
+                        .where(LedgerEntryRepository.hasWalletId(wallet.getId()))
+                        .and(LedgerEntryRepository.hasType(type))
+                        .and(LedgerEntryRepository.createdAtGreaterThanEqual(from))
+                        .and(LedgerEntryRepository.createdAtLessThanEqual(to));
+
+        Page<LedgerEntry> listTransaction =
+                ledgerRepository.findAll(spec, pageable);
+
+        return listTransaction.map(
+                ledgerMapper::toTransactionHistoryResponse);
+    }
+
+
+
 
 
 }

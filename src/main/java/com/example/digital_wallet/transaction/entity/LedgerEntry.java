@@ -42,6 +42,7 @@ public class LedgerEntry {
 
     private UUID referenceId;
 
+
     @CreationTimestamp
     private OffsetDateTime createdAt;
 }
