@@ -1,0 +1,27 @@
+#spring.application.name=digital-wallet
+server:
+  port: 8080
+  servlet:
+    context-path: /wallet
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/digital-wallet
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    org.springframework.security: TRACE
+
+
+jwt:
+  signerKey: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3ODQ4NTc3NzYsImV4cCI6MTc4NDg2MTM3NiwianRpIjoiYzlkODFiZDItN2VlYy00NWY4LTkwZTctYjU3N2ViYTFmZWJkIiwiaXNzIjoiYXBpLmV4YW1wbGUuY29tIiwic3ViIjoidXNlcl81NDcwIiwiYXVkIjoiaHR0cHM6Ly9leGFtcGxlLmNvbSJ9.l55BiDbofHom5RpqdgopX8kdd6wfKsUGaT5SD1PUJWW0wafvKNbWL7yN5YsVkzbyHy55W_ETPDowpk-cWvxXGw"
+
+
