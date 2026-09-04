@@ -3,26 +3,24 @@ package com.example.digital_wallet.transaction.service;
 
 import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
+import com.example.digital_wallet.common.security.CurrentUserService;
 import com.example.digital_wallet.redis.service.IdempotencyService;
 import com.example.digital_wallet.transaction.dto.request.TransferRequest;
 import com.example.digital_wallet.transaction.dto.response.TransferResponse;
-import com.example.digital_wallet.transaction.entity.LedgerEntry;
 import com.example.digital_wallet.transaction.entity.LedgerType;
 import com.example.digital_wallet.transaction.entity.TransferStatus;
 import com.example.digital_wallet.transaction.entity.TransferTransaction;
 import com.example.digital_wallet.transaction.mapper.TransferMapper;
-import com.example.digital_wallet.transaction.repository.LedgerEntryRepository;
 import com.example.digital_wallet.transaction.repository.TransferRepository;
 import com.example.digital_wallet.user.entity.User;
 import com.example.digital_wallet.user.repository.UserRepository;
 import com.example.digital_wallet.wallet.entity.Wallet;
 import com.example.digital_wallet.wallet.repository.WalletRepository;
+import com.example.digital_wallet.wallet.service.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,7 +37,9 @@ public class TransferService {
     TransferMapper transferMapper;
     UserRepository userRepository;
     WalletRepository walletRepository;
-    LedgerEntryRepository ledgerRepository;
+    CurrentUserService currentUserService;
+    WalletService walletService;
+    LedgerService ledgerService;
 
 
     @Transactional
@@ -47,7 +47,7 @@ public class TransferService {
 
     ) throws InterruptedException {
 
-        boolean acquired  = idempotencyService.tryAccquire(idempotencyKey);
+        boolean acquired  = idempotencyService.tryAcquire(idempotencyKey);
         if(!acquired)
         {
 
@@ -70,17 +70,7 @@ public class TransferService {
         }
 
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
-
-        String senderUsername = authentication.getName();
-
-        User sender = userRepository
-                .findByUsername(senderUsername)
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.USER_NOT_EXISTED));
+        User sender = currentUserService.getCurrentUser();
 
         User receiver = userRepository
                 .findByUsername(request.getReceiverUsername())
@@ -91,21 +81,16 @@ public class TransferService {
             throw new AppException(ErrorCode.CANNOT_TRANSFER_TO_SELF);
         }
 
-        Wallet senderWallet = walletRepository
-                .findByUserId(sender.getId())
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.WALLET_NOT_EXISTED));
+        Wallet senderWallet = walletService.getWalletByUserId(sender.getId());
 
-        Wallet receiverWallet = walletRepository
-                .findByUserId(receiver.getId())
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.WALLET_NOT_EXISTED));
+        Wallet receiverWallet = walletService.getWalletByUserId(receiver.getId());
+
+        walletService.validateWallet(senderWallet);
+        walletService.validateWallet(receiverWallet);
+
 
         BigDecimal amount = request.getAmount();
 
-        if (senderWallet.getBalance().compareTo(amount) < 0) {
-            throw new AppException(ErrorCode.INSUFFICIENT_BALANCE);
-        }
 
         BigDecimal senderOldBalance =
                 senderWallet.getBalance();
@@ -113,20 +98,13 @@ public class TransferService {
         BigDecimal receiverOldBalance =
                 receiverWallet.getBalance();
 
-        BigDecimal senderNewBalance =
-                senderOldBalance.subtract(amount);
 
-        BigDecimal receiverNewBalance =
-                receiverOldBalance.add(amount);
-
-        senderWallet.setBalance(senderNewBalance);
-
-        receiverWallet.setBalance(receiverNewBalance);
+        BigDecimal senderNewBalance = walletService.debit(senderWallet,amount);
 
 
-        walletRepository.save(senderWallet);
+        BigDecimal receiverNewBalance = walletService.credit(receiverWallet,amount);
 
-        walletRepository.save(receiverWallet);
+
 
 
         TransferTransaction transferTransaction = TransferTransaction.builder()
@@ -141,28 +119,24 @@ public class TransferService {
         transferRepository.save(transferTransaction);
 
 
-        LedgerEntry senderLedger = LedgerEntry.builder()
-                .wallet(senderWallet)
-                .type(LedgerType.TRANSFER_OUT)
-                .amount(amount.negate())
-                .balanceBefore(senderOldBalance)
-                .balanceAfter(senderNewBalance)
-                .referenceId(transferTransaction.getId())
-                .build();
+        ledgerService.create(
+                senderWallet,
+                LedgerType.TRANSFER_OUT,
+                amount.negate(),
+                senderOldBalance,
+                senderNewBalance,
+                transferTransaction.getId()
+        );
 
-        LedgerEntry receiverLedger = LedgerEntry.builder()
-                .wallet(receiverWallet)
-                .type(LedgerType.TRANSFER_IN)
-                .amount(amount)
-                .balanceBefore(receiverOldBalance)
-                .balanceAfter(receiverNewBalance)
-                .referenceId(transferTransaction.getId())
-                .build();
+        ledgerService.create(
+                receiverWallet,
+                LedgerType.TRANSFER_IN,
+                amount,
+                receiverOldBalance,
+                receiverNewBalance,
+                transferTransaction.getId()
+        );
 
-
-
-        ledgerRepository.save(senderLedger);
-        ledgerRepository.save(receiverLedger);
 
         idempotencyService.markCompleted(
                 idempotencyKey,
@@ -175,7 +149,7 @@ public class TransferService {
                 .amount(amount)
                 .senderBalance(senderNewBalance)
                 .status("SUCCESS")
-                .createdAt(OffsetDateTime.now())
+                .createdAt(transferTransaction.getCreatedAt())
                 .build();
     }
 

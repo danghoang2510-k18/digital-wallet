@@ -18,7 +18,7 @@ public class IdempotencyService {
 
     static String PREFIX = "idempotency:transaction:";
 
-    public boolean tryAccquire(String idempotencyKey)
+    public boolean tryAcquire(String idempotencyKey)
     {
         String key = PREFIX + idempotencyKey;
 

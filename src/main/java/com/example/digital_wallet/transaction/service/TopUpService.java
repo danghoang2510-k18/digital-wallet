@@ -3,25 +3,24 @@ package com.example.digital_wallet.transaction.service;
 
 import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
+import com.example.digital_wallet.common.security.CurrentUserService;
 import com.example.digital_wallet.redis.service.IdempotencyService;
 import com.example.digital_wallet.transaction.dto.request.TopUpRequest;
 import com.example.digital_wallet.transaction.dto.response.TopUpResponse;
 import com.example.digital_wallet.transaction.entity.*;
 import com.example.digital_wallet.transaction.mapper.TopUpMapper;
-import com.example.digital_wallet.transaction.repository.LedgerEntryRepository;
+
 import com.example.digital_wallet.transaction.repository.TopUpRepository;
 import com.example.digital_wallet.user.entity.User;
-import com.example.digital_wallet.user.repository.UserRepository;
 import com.example.digital_wallet.wallet.entity.Wallet;
 import com.example.digital_wallet.wallet.repository.WalletRepository;
+import com.example.digital_wallet.wallet.service.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -34,19 +33,20 @@ import java.util.Optional;
 @FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
 public class TopUpService {
 
-    UserRepository userRepository;
     WalletRepository walletRepository;
-    LedgerEntryRepository ledgerRepository;
     TopUpRepository topUpRepository;
     TopUpMapper topUpMapper;
-
     IdempotencyService idempotencyService;
+    CurrentUserService currentUserService;
+    WalletService walletService;
+    LedgerService ledgerService;
+
 
     @Transactional
     public TopUpResponse topUp(TopUpRequest request,String idempotencyKey
     ) throws InterruptedException {
 
-        boolean acquired  = idempotencyService.tryAccquire(idempotencyKey);
+        boolean acquired  = idempotencyService.tryAcquire(idempotencyKey);
         if(!acquired)
         {
 
@@ -69,20 +69,9 @@ public class TopUpService {
 
 
 
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
+        User user = currentUserService.getCurrentUser();
 
-        String username = authentication.getName();
-
-        User user = userRepository
-                .findByUsername(username)
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.USER_NOT_EXISTED));
-
-        Wallet wallet = walletRepository
-                .findByUserId(user.getId())
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.WALLET_NOT_EXISTED));
+        Wallet wallet = walletService.getWalletByUserId(user.getId());
 
         BigDecimal amount = request.getAmount();
 
@@ -105,16 +94,15 @@ public class TopUpService {
 
         walletRepository.save(wallet);
 
-        LedgerEntry ledger = LedgerEntry.builder()
-                .wallet(wallet)
-                .type(LedgerType.TOP_UP)
-                .amount(amount)
-                .balanceBefore(oldBalance)
-                .balanceAfter(newBalance)
-                .referenceId(transaction.getId())
-                .build();
 
-        ledgerRepository.save(ledger);
+        ledgerService.create(
+                wallet,
+                LedgerType.TOP_UP,
+                amount,
+                oldBalance,
+                newBalance
+                ,transaction.getId()
+                );
 
         idempotencyService.markCompleted(
                 idempotencyKey,

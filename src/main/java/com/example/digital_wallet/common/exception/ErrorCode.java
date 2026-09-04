@@ -25,7 +25,8 @@ public enum ErrorCode {
     OPTIMISTIC_LOCK_CONFLICT(1011,"Wallet was modified by another transaction",HttpStatus.CONFLICT),
     CANNOT_TRANSFER_TO_SELF(1010,"Can't transfer to selft",HttpStatus.BAD_REQUEST),
     INSUFFICIENT_BALANCE(1012,"Insufficient current balance",HttpStatus.BAD_REQUEST),
-    TRANSACTION_PROCESSING(1013,"The transaction is being processed.",HttpStatus.CONFLICT)
+    TRANSACTION_PROCESSING(1013,"The transaction is being processed.",HttpStatus.CONFLICT),
+    WALLET_NOT_ACTIVE(1014,"Wallet not active.",HttpStatus.BAD_REQUEST)
 
 
     ;

@@ -4,6 +4,7 @@ package com.example.digital_wallet.transaction.controller;
 import com.example.digital_wallet.common.response.ApiResponse;
 import com.example.digital_wallet.transaction.dto.response.TransactionHistoryResponse;
 import com.example.digital_wallet.transaction.entity.LedgerType;
+import com.example.digital_wallet.transaction.entity.TransactionSortField;
 import com.example.digital_wallet.transaction.service.TransactionHistoryService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,14 +29,15 @@ public class TransactionHistoryController {
     public ApiResponse<Page<TransactionHistoryResponse>> getAllTransaction(
             @RequestParam(defaultValue = "0",required = false) int page,
             @RequestParam(defaultValue = "5",required = false) int size,
-            @RequestParam (defaultValue = "createdAt",required = false)String orderBy,
+            @RequestParam(defaultValue = "CREATED_AT")
+            TransactionSortField sort,
             @RequestParam(required = false) LedgerType type,
             @RequestParam(required = false) OffsetDateTime from,
             @RequestParam(required = false)OffsetDateTime to
     )
     {
         return ApiResponse.<Page<TransactionHistoryResponse>>builder()
-                .result(transactionHistoryService.accessTransactionHistory(page,size,orderBy,type,from,to))
+                .result(transactionHistoryService.accessTransactionHistory(page,size,sort,type,from,to))
                 .build();
     }
 }
