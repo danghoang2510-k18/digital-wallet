@@ -40,6 +40,9 @@ public class TransferTransaction {
     @Column(nullable = false)
     TransferStatus status;
 
+    @Column(unique = true)
+    private String idempotencyKey;
+
     String description;
 
     @CreationTimestamp

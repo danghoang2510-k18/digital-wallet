@@ -1,6 +1,7 @@
 package com.example.digital_wallet.transaction.dto.response;
 
 import com.example.digital_wallet.transaction.entity.LedgerType;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TransactionHistoryResponse {
 
     UUID id;

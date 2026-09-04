@@ -1,5 +1,6 @@
 package com.example.digital_wallet.transaction.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.math.BigDecimal;
