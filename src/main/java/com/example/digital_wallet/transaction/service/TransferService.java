@@ -4,6 +4,10 @@ package com.example.digital_wallet.transaction.service;
 import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
 import com.example.digital_wallet.common.security.CurrentUserService;
+import com.example.digital_wallet.kafka.event.OutboxEventRepository;
+import com.example.digital_wallet.kafka.event.OutboxService;
+import com.example.digital_wallet.kafka.event.TransferCompletedEvent;
+import com.example.digital_wallet.kafka.producer.TransactionEventProducer;
 import com.example.digital_wallet.redis.service.IdempotencyService;
 import com.example.digital_wallet.transaction.dto.request.TransferRequest;
 import com.example.digital_wallet.transaction.dto.response.TransferResponse;
@@ -21,12 +25,15 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
@@ -36,10 +43,11 @@ public class TransferService {
     TransferRepository transferRepository;
     TransferMapper transferMapper;
     UserRepository userRepository;
-    WalletRepository walletRepository;
     CurrentUserService currentUserService;
     WalletService walletService;
     LedgerService ledgerService;
+    TransactionEventProducer eventProducer;
+    OutboxService outboxService;
 
 
     @Transactional
@@ -118,6 +126,20 @@ public class TransferService {
 
         transferRepository.save(transferTransaction);
 
+        TransferCompletedEvent event =
+                TransferCompletedEvent.builder()
+                        .eventId(UUID.randomUUID())
+                        .transactionId(transferTransaction.getId())
+                        .senderWalletId(senderWallet.getId())
+                        .receiverWalletId(receiverWallet.getId())
+                        .amount(amount)
+                        .occurredAt(OffsetDateTime.now())
+                                .build();
+
+//        eventProducer.publishTransferCompleted(event);
+
+
+
 
         ledgerService.create(
                 senderWallet,
@@ -138,6 +160,13 @@ public class TransferService {
         );
 
 
+
+        outboxService.saveTransferCompletedEvent(
+                transferTransaction,
+                event
+        );
+
+
         idempotencyService.markCompleted(
                 idempotencyKey,
                 transferTransaction.getId().toString()
@@ -149,7 +178,7 @@ public class TransferService {
                 .amount(amount)
                 .senderBalance(senderNewBalance)
                 .status("SUCCESS")
-                .createdAt(transferTransaction.getCreatedAt())
+                .createdAt(OffsetDateTime.now())
                 .build();
     }
 
