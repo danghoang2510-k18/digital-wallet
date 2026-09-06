@@ -1,17 +1,26 @@
 package com.example.digital_wallet.kafka.consumer;
 
+import com.example.digital_wallet.kafka.event.ProcessedEvent;
+import com.example.digital_wallet.kafka.event.ProcessedEventRepository;
 import com.example.digital_wallet.kafka.event.TransferCompletedEvent;
+import com.example.digital_wallet.kafka.event.TransferCompletedEventHandler;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class TransactionEventConsumer {
     private final ObjectMapper objectMapper;
+    private final ProcessedEventRepository processedEventRepository;
+    private final TransferCompletedEventHandler transferCompletedEventHandler;
 
     @KafkaListener(
             topics = "wallet.transaction.completed",
@@ -28,11 +37,9 @@ public class TransactionEventConsumer {
                             TransferCompletedEvent.class
                     );
 
-            log.info(
-                    "Transfer completed: transactionId={}, amount={}",
-                    event.getTransactionId(),
-                    event.getAmount()
-            );
+            UUID eventId = event.getEventId();
+
+           transferCompletedEventHandler.process(event);
 
         } catch (Exception e) {
 
@@ -43,9 +50,11 @@ public class TransactionEventConsumer {
             );
 
             throw new IllegalStateException(
-                    "Invalid transfer event payload",
+                    "TEST KAFKA ERROR",
                     e
             );
         }
     }
+
+
 }

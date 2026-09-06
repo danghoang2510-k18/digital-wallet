@@ -20,15 +20,19 @@ public class OutboxService {
 
 
 
+
     public void saveTransferCompletedEvent(
             TransferTransaction transaction,
             TransferCompletedEvent event
     ) {
 
+
         try {
 
             String payload =
                     objectMapper.writeValueAsString(event);
+
+
 
             OutboxEvent outboxEvent =
                     OutboxEvent.builder()

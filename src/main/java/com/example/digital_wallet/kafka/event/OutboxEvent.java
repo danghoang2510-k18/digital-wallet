@@ -4,7 +4,7 @@ import com.example.digital_wallet.transaction.entity.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 

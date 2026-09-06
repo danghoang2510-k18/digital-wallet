@@ -49,7 +49,6 @@ public class OutboxPublisher {
                         OffsetDateTime.now()
                 );
 
-                log.info(event.toString());
                 outboxEventRepository.save(event);
 
             } else {
