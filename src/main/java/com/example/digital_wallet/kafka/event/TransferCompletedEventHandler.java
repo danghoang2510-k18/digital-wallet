@@ -1,5 +1,9 @@
 package com.example.digital_wallet.kafka.event;
 
+import com.example.digital_wallet.notify.entity.Notification;
+import com.example.digital_wallet.notify.entity.NotificationType;
+import com.example.digital_wallet.notify.service.NotificationService;
+import com.example.digital_wallet.wallet.service.WalletService;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +21,8 @@ import java.util.UUID;
 @Slf4j
 public class TransferCompletedEventHandler {
     ProcessedEventRepository processedEventRepository;
+    NotificationService notificationService;
+    WalletService walletService;
 
     @Transactional
     public void process(
@@ -34,6 +40,26 @@ public class TransferCompletedEventHandler {
             return;
         }
 
+        UUID senderId = walletService.getUserIdByWalletId(event.getSenderWalletId());
+        UUID receiverId = walletService.getUserIdByWalletId(event.getReceiverWalletId());
+        notificationService.createNotification(
+                senderId,
+                NotificationType.TRANSFER_SUCCESS,
+                "Chuyển tiền thành công",
+                "Đã chuyển " + event.getAmount() + "VND.",
+                event.getTransactionId()
+
+        );
+
+
+        notificationService.createNotification(
+                receiverId,
+                NotificationType.TRANSFER_SUCCESS,
+                "Nhận tiền thành công",
+                "Đã nhận " + event.getAmount() + "VND.",
+                event.getTransactionId()
+
+        );
 
         processedEventRepository.save(
                 ProcessedEvent.builder()
@@ -41,5 +67,8 @@ public class TransferCompletedEventHandler {
                         .processedAt(OffsetDateTime.now())
                         .build()
         );
+
+
+
     }
 }

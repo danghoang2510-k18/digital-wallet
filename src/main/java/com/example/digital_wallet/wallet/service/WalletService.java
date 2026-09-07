@@ -72,4 +72,15 @@ public class WalletService {
             throw new AppException(ErrorCode.WALLET_NOT_ACTIVE);
         }
     }
+
+
+    public UUID getUserIdByWalletId(UUID walletId) {
+
+        Wallet wallet = walletRepository.findById(walletId)
+                .orElseThrow(() ->
+                        new AppException(ErrorCode.WALLET_NOT_EXISTED)
+                );
+
+        return wallet.getUser().getId();
+    }
 }

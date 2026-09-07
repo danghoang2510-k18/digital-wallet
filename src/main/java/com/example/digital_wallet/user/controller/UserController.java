@@ -5,6 +5,7 @@ import com.example.digital_wallet.common.response.ApiResponse;
 import com.example.digital_wallet.user.dto.request.RegisterRequest;
 import com.example.digital_wallet.user.dto.request.UserUpdateRequest;
 import com.example.digital_wallet.user.dto.response.UserResponse;
+import com.example.digital_wallet.user.mapper.UserMapper;
 import com.example.digital_wallet.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class UserController {
 
     UserService userService;
+    UserMapper userMapper;
 
     @PostMapping("/register")
     public ApiResponse<UserResponse> register(@RequestBody @Valid RegisterRequest request)
@@ -44,8 +46,9 @@ public class UserController {
     @GetMapping("/{userId}")
     ApiResponse<UserResponse> getUser(@PathVariable UUID userId)
     {
+        var result = userService.getUser(userId);
         return ApiResponse.<UserResponse>builder()
-                .result(userService.getUser(userId))
+                .result(userMapper.toUserResponse(result))
                 .build();
 
     }
