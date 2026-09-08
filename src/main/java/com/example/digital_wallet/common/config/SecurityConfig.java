@@ -1,6 +1,7 @@
 package com.example.digital_wallet.common.config;
 
 
+import com.example.digital_wallet.common.rate_limit.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -31,10 +33,14 @@ public class SecurityConfig {
     private final String[] PUBLIC_POST =
             {
                     "/auth/login",
+                    "/auth/logout",
+                    "/auth/refresh",
+                    "/auth/introspect",
                     "/register"
             };
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http)
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            RateLimitFilter rateLimitFilter)
     {
         http
                 .csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable())
@@ -54,7 +60,12 @@ public class SecurityConfig {
                         oauth.jwt(Customizer.withDefaults())
                                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
 
-                );
+                )
+
+                .addFilterAfter(rateLimitFilter,
+                        BearerTokenAuthenticationFilter.class)
+
+        ;
 
         return http.build();
     }

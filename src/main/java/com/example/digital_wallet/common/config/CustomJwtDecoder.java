@@ -2,6 +2,7 @@ package com.example.digital_wallet.common.config;
 
 
 import com.example.digital_wallet.auth.service.AuthenticationService;
+import com.example.digital_wallet.auth.service.JwtService;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CustomJwtDecoder implements JwtDecoder {
 
-    AuthenticationService authenticationService;
+
+    JwtService jwtService;
 
     @Value("${jwt.signerKey}")
     @NonFinal
@@ -42,7 +44,7 @@ public class CustomJwtDecoder implements JwtDecoder {
 
 
         try {
-            authenticationService.verifyToken(token);
+            jwtService.verifyToken(token);
         } catch (ParseException e) {
             throw new RuntimeException(e);
         } catch (JOSEException e) {

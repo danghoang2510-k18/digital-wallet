@@ -104,6 +104,14 @@ public class UserService {
 
     }
 
+    public User getUserByUserName(String name)
+    {
+        User user = userRepository.findByUsername(name)
+                .orElseThrow(
+                        () -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return  user;
+    }
+
     @PostAuthorize("returnObject.username == authentication.name")
     public UserResponse getMyInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -4,6 +4,7 @@ package com.example.digital_wallet.transaction.service;
 import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
 import com.example.digital_wallet.common.security.CurrentUserService;
+import com.example.digital_wallet.kafka.event.OutboxService;
 import com.example.digital_wallet.redis.service.IdempotencyService;
 import com.example.digital_wallet.transaction.dto.request.TopUpRequest;
 import com.example.digital_wallet.transaction.dto.response.TopUpResponse;
@@ -40,6 +41,7 @@ public class TopUpService {
     CurrentUserService currentUserService;
     WalletService walletService;
     LedgerService ledgerService;
+    OutboxService outboxService;
 
 
     @Transactional
@@ -103,6 +105,8 @@ public class TopUpService {
                 newBalance
                 ,transaction.getId()
                 );
+
+
 
         idempotencyService.markCompleted(
                 idempotencyKey,

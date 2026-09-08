@@ -6,9 +6,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/digital-wallet
-    username: postgres
-    password: root
+    url: ${DBMS_URL}
+    username: ${DBMS_USERNAME}
+    password: ${DBMS_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   data:
@@ -40,6 +40,22 @@ logging:
 
 
 jwt:
-  signerKey: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3ODQ4NTc3NzYsImV4cCI6MTc4NDg2MTM3NiwianRpIjoiYzlkODFiZDItN2VlYy00NWY4LTkwZTctYjU3N2ViYTFmZWJkIiwiaXNzIjoiYXBpLmV4YW1wbGUuY29tIiwic3ViIjoidXNlcl81NDcwIiwiYXVkIjoiaHR0cHM6Ly9leGFtcGxlLmNvbSJ9.l55BiDbofHom5RpqdgopX8kdd6wfKsUGaT5SD1PUJWW0wafvKNbWL7yN5YsVkzbyHy55W_ETPDowpk-cWvxXGw"
+  signerKey: ${JWT_SIGNERKEY}
+  token :
+    access-time: 7
+    refresh-time: 7
+
+rate-limit:
+  transfer:
+    max-requests: 10
+    window-seconds: 30
+
+  top-up:
+    max-requests: 10
+    window-seconds: 60
+
+  login:
+    max-requests: 100
+    window-seconds: 60
 
 

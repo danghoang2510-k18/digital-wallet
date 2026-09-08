@@ -12,7 +12,7 @@ public interface TransferMapper {
 
 
     @Mapping(target = "senderBalance",source = "transaction.senderWallet.balance")
-    @Mapping(target = "receiverUsername",source = "transaction.senderWallet.user.username")
+    @Mapping(target = "receiverUsername",source = "transaction.receiverWallet.user.username")
     @Mapping(target = "transactionId",source = "transaction.id")
     TransferResponse toTransferResponse(TransferTransaction transaction);
 }
