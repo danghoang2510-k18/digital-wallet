@@ -93,9 +93,7 @@ public class TopUpService {
         topUpRepository.save(transaction);
 
         wallet.setBalance(newBalance);
-
-        walletRepository.save(wallet);
-
+        
 
         ledgerService.create(
                 wallet,
@@ -105,8 +103,6 @@ public class TopUpService {
                 newBalance
                 ,transaction.getId()
                 );
-
-
 
         idempotencyService.markCompleted(
                 idempotencyKey,

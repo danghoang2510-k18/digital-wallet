@@ -3,7 +3,6 @@ package com.example.digital_wallet.auth.service;
 import com.example.digital_wallet.auth.dto.response.TokenPair;
 import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
-import com.example.digital_wallet.redis.service.RefreshTokenRedisService;
 import com.example.digital_wallet.user.entity.User;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -13,12 +12,11 @@ import com.nimbusds.jwt.SignedJWT;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -58,7 +56,7 @@ public class JwtService {
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getUsername())
-                .issuer("hd2005.com")
+                .issuer("digital-wallet")
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now()
@@ -78,7 +76,7 @@ public class JwtService {
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getUsername())
-                .issuer("hd2005.com")
+                .issuer("digital-wallet")
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now()

@@ -20,7 +20,7 @@ public class RefreshTokenCookieService {
                         refreshToken
                 )
                 .httpOnly(true)
-                .secure(true)
+                .secure(true) //Cấu hình chỉ được gửi qua https
                 .sameSite("Strict")
                 .path("/wallet/auth")
                 .maxAge(Duration.ofDays(ttl))

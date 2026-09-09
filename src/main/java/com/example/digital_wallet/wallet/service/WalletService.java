@@ -36,6 +36,7 @@ public class WalletService {
             BigDecimal amount
     ) {
 
+        validateWallet(wallet);
         BigDecimal oldBalance = wallet.getBalance();
 
         if (oldBalance.compareTo(amount) < 0) {
@@ -56,6 +57,8 @@ public class WalletService {
             Wallet wallet,
             BigDecimal amount
     ) {
+
+        validateWallet(wallet);
 
         BigDecimal oldBalance = wallet.getBalance();
 

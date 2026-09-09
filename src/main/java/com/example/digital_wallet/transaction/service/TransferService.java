@@ -17,6 +17,7 @@ import com.example.digital_wallet.transaction.mapper.TransferMapper;
 import com.example.digital_wallet.transaction.repository.TransferRepository;
 import com.example.digital_wallet.user.entity.User;
 import com.example.digital_wallet.user.repository.UserRepository;
+import com.example.digital_wallet.user.service.UserService;
 import com.example.digital_wallet.wallet.entity.Wallet;
 import com.example.digital_wallet.wallet.service.WalletService;
 import jakarta.transaction.Transactional;
@@ -40,11 +41,10 @@ public class TransferService {
     IdempotencyService idempotencyService;
     TransferRepository transferRepository;
     TransferMapper transferMapper;
-    UserRepository userRepository;
+    UserService userService;
     CurrentUserService currentUserService;
     WalletService walletService;
     LedgerService ledgerService;
-    TransactionEventProducer eventProducer;
     OutboxService outboxService;
 
 
@@ -78,10 +78,7 @@ public class TransferService {
 
         User sender = currentUserService.getCurrentUser();
 
-        User receiver = userRepository
-                .findByUsername(request.getReceiverUsername())
-                .orElseThrow(() ->
-                        new AppException(ErrorCode.USER_NOT_EXISTED));
+        User receiver = userService.getUserByUserName(request.getReceiverUsername());
 
         if (sender.getId().equals(receiver.getId())) {
             throw new AppException(ErrorCode.CANNOT_TRANSFER_TO_SELF);
@@ -91,8 +88,6 @@ public class TransferService {
 
         Wallet receiverWallet = walletService.getWalletByUserId(receiver.getId());
 
-        walletService.validateWallet(senderWallet);
-        walletService.validateWallet(receiverWallet);
 
 
         BigDecimal amount = request.getAmount();
@@ -163,6 +158,9 @@ public class TransferService {
                 transferTransaction,
                 event
         );
+        Thread.sleep(50000);
+
+
 
 
         idempotencyService.markCompleted(

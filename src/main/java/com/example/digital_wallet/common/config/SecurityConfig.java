@@ -27,6 +27,9 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+
+
+
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
 
@@ -100,7 +103,7 @@ public class SecurityConfig {
                 "Content-Type",
                 "Idempotency-Key"
         ));
-        config.setAllowCredentials(false);
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 

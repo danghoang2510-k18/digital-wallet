@@ -12,7 +12,10 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "transfer_transactions")
+@Table(name = "transfer_transactions",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"sender_wallet_id","idempotency_key"})
+        })
 @Getter
 @Setter
 @Builder
@@ -40,7 +43,7 @@ public class TransferTransaction {
     @Column(nullable = false)
     TransferStatus status;
 
-    @Column(unique = true)
+    @Column(unique = true,name = "idempotency_key")
     private String idempotencyKey;
 
     String description;
