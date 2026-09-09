@@ -4,6 +4,7 @@ import com.example.digital_wallet.wallet.entity.Wallet;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -18,15 +19,13 @@ import java.util.UUID;
         })
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class TransferTransaction {
+public class TransferTransaction extends BaseTransaction{
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    UUID id;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_wallet_id", nullable = false)
@@ -36,21 +35,7 @@ public class TransferTransaction {
     @JoinColumn(name = "receiver_wallet_id", nullable = false)
     Wallet receiverWallet;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    BigDecimal amount;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    TransferStatus status;
-
-    @Column(unique = true,name = "idempotency_key")
-    private String idempotencyKey;
-
     String description;
 
-    @CreationTimestamp
-    OffsetDateTime createdAt;
 
-    @UpdateTimestamp
-    OffsetDateTime updatedAt;
 }

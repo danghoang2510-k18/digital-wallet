@@ -1,6 +1,7 @@
 package com.example.digital_wallet.transaction.dto.response;
 
 
+import com.example.digital_wallet.transaction.entity.TransactionStatus;
 import com.example.digital_wallet.wallet.entity.Wallet;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.Column;
@@ -21,4 +22,6 @@ public class TopUpResponse {
     BigDecimal amount;
 
     BigDecimal balance;
+
+    TransactionStatus status;
 }

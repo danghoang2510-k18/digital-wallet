@@ -1,6 +1,7 @@
 package com.example.digital_wallet.kafka.event;
 
 
+import com.example.digital_wallet.transaction.entity.BaseTransaction;
 import com.example.digital_wallet.transaction.entity.TransactionType;
 import com.example.digital_wallet.transaction.entity.TransferTransaction;
 import lombok.AccessLevel;
@@ -22,8 +23,8 @@ public class OutboxService {
 
 
     public void saveTransferCompletedEvent(
-            TransferTransaction transaction,
-            TransferCompletedEvent event
+            BaseTransaction transaction,
+            TransactionCompletedEvent event
     ) {
 
 

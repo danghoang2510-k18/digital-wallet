@@ -5,6 +5,8 @@ import com.example.digital_wallet.common.exception.AppException;
 import com.example.digital_wallet.common.exception.ErrorCode;
 import com.example.digital_wallet.common.security.CurrentUserService;
 import com.example.digital_wallet.kafka.event.OutboxService;
+import com.example.digital_wallet.kafka.event.TopUpCompletedEvent;
+import com.example.digital_wallet.kafka.event.TransactionCompletedEvent;
 import com.example.digital_wallet.redis.service.IdempotencyService;
 import com.example.digital_wallet.transaction.dto.request.TopUpRequest;
 import com.example.digital_wallet.transaction.dto.response.TopUpResponse;
@@ -27,7 +29,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -46,13 +50,15 @@ public class TopUpService {
 
     @Transactional
     public TopUpResponse topUp(TopUpRequest request,String idempotencyKey
-    ) throws InterruptedException {
+    ) {
 
-        boolean acquired  = idempotencyService.tryAcquire(idempotencyKey);
+        User user = currentUserService.getCurrentUser();
+
+        boolean acquired  = idempotencyService.tryAcquire(idempotencyKey,user.getId(),TransactionType.TOP_UP);
         if(!acquired)
         {
 
-            String value = idempotencyService.getValue(idempotencyKey);
+            String value = idempotencyService.getValue(idempotencyKey,user.getId(),TransactionType.TOP_UP);
 
             if("PROCESSING".equals(value))
             {
@@ -71,48 +77,74 @@ public class TopUpService {
 
 
 
-        User user = currentUserService.getCurrentUser();
+        try {
 
-        Wallet wallet = walletService.getWalletByUserId(user.getId());
+            Wallet wallet = walletService.getWalletByUserId(user.getId());
 
-        BigDecimal amount = request.getAmount();
+            BigDecimal amount = request.getAmount();
 
-        BigDecimal oldBalance = wallet.getBalance();
+            BigDecimal oldBalance = wallet.getBalance();
 
 
+            BigDecimal newBalance = oldBalance.add(amount);
 
-        BigDecimal newBalance = oldBalance.add(amount);
+            TopUpTransaction transaction = TopUpTransaction.builder()
+                    .wallet(wallet)
+                    .amount(amount)
+                    .status(TransactionStatus.SUCCESS)
+                    .idempotencyKey(idempotencyKey)
+                    .build();
 
-        TopUpTransaction transaction = TopUpTransaction.builder()
-                .wallet(wallet)
-                .amount(amount)
-                .status(TopUpStatus.SUCCESS)
-                .idempotencyKey(idempotencyKey)
-                .build();
+            transaction = topUpRepository.save(transaction);
 
-        topUpRepository.save(transaction);
+            wallet.setBalance(newBalance);
 
-        wallet.setBalance(newBalance);
-        
+            TransactionCompletedEvent event =
+                    TopUpCompletedEvent.builder()
+                            .eventId(UUID.randomUUID())
+                            .transactionId(transaction.getId())
+                            .transactionType(TransactionType.TRANSFER)
+                            .amount(amount)
+                            .occurredAt(OffsetDateTime.now())
+                            .walletId(wallet.getId())
+                            .build();
 
-        ledgerService.create(
-                wallet,
-                LedgerType.TOP_UP,
-                amount,
-                oldBalance,
-                newBalance
-                ,transaction.getId()
-                );
 
-        idempotencyService.markCompleted(
-                idempotencyKey,
-                transaction.getId().toString()
-        );
+            ledgerService.create(
+                    wallet,
+                    LedgerType.TOP_UP,
+                    amount,
+                    oldBalance,
+                    newBalance
+                    , transaction.getId()
+            );
 
-        return TopUpResponse.builder()
-                .amount(amount)
-                .balance(newBalance)
-                .build();
+            outboxService.saveTransferCompletedEvent(
+                    transaction,
+                    event
+            );
+
+            idempotencyService.markCompleted(
+                    idempotencyKey,
+                    user.getId(),
+                    TransactionType.TOP_UP,
+                    transaction.getId().toString()
+            );
+
+            return TopUpResponse.builder()
+                    .amount(transaction.getAmount())
+                    .balance(newBalance)
+                    .status(transaction.getStatus())
+                    .build();
+        }
+        catch (Exception ex)
+        {
+            idempotencyService.removeValue(idempotencyKey
+                    ,user.getId()
+                    ,TransactionType.TOP_UP);
+
+            throw ex;
+        }
     }
 
 }

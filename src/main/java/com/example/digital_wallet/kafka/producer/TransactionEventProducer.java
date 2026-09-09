@@ -1,7 +1,7 @@
 package com.example.digital_wallet.kafka.producer;
 
 
-import com.example.digital_wallet.kafka.event.TransferCompletedEvent;
+import com.example.digital_wallet.kafka.event.TransactionCompletedEvent;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,7 +20,7 @@ public class TransactionEventProducer {
     KafkaTemplate<String,String> kafkaTemplate;
 
     public void publishTransferCompleted(
-            TransferCompletedEvent event
+            TransactionCompletedEvent event
     ) {
 
         kafkaTemplate.send(

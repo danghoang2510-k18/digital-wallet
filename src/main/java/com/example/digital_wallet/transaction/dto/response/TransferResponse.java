@@ -1,5 +1,6 @@
 package com.example.digital_wallet.transaction.dto.response;
 
+import com.example.digital_wallet.transaction.entity.TransactionStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
@@ -22,7 +23,7 @@ public class TransferResponse {
 
     private BigDecimal senderBalance;
 
-    private String status;
+    private TransactionStatus status;
 
     private OffsetDateTime createdAt;
 }
